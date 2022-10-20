@@ -11,9 +11,9 @@
  * - 2) 键盘左/右/下键控制方块的移动，上键旋转方块
  *
  * - 未实现功能如下：
- * - 1) 绘制‘J’、‘Z’等形状的方块
- * - 2) 随机生成方块并赋上不同的颜色
- * - 3) 方块的自动向下移动
+ * - 1) 绘制‘J’、‘Z’等形状的方块  √
+ * - 2) 随机生成方块并赋上不同的颜色  √
+ * - 3) 方块的自动向下移动 √
  * - 4) 方块之间、方块与边界之间的碰撞检测
  * - 5) 棋盘格中每一行填充满之后自动消除
  * - 6) 其他
@@ -25,17 +25,26 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <time.h>
+#include <random>
+#include <glut.h>
+#include <thread>
+#include <mutex>
 #define v2 glm::vec2
+using namespace std;
+uint8_t tickInterval = 500;//每一tick有多少毫秒
 int starttime;			// 控制方块向下移动时间
 int rotation = 0;		// 控制当前窗口中的方块旋转
 glm::vec2 tile[4];			// 表示当前窗口中的方块
+glm::vec4 color_current;
 bool gameover = false;	// 游戏结束控制变量
 int xsize = 400;		// 窗口大小（尽量不要变动窗口大小！）
 int ysize = 720;
-
+int type_current = 0;//当前选择的方块的类型
 // 单个网格大小
 int tile_width = 33;
-
+thread* gameThread = NULL;
+mutex mtx;
 // 网格布大小
 const int board_width = 10;
 const int board_height = 20;
@@ -167,18 +176,22 @@ void newtile()
 	// 将新方块放于棋盘格的最上行中间位置并设置默认的旋转方向
 	tilepos = glm::vec2(5 , 19);
 	rotation = 0;
-	
+	srand(time(0));
+	type_current = (rand() % 7) * 4;
+	rotation = type_current;
 	for (int i = 0; i < 4; i++)
 	{
-		tile[i] = allRotationsLshape[0][i];
+		tile[i] = allRotationsLshape[type_current][i];
 	}
 
 	updatetile();
 
 	// 给新方块赋上颜色
 	glm::vec4 newcolours[24];
+	glm::vec4 color = glm::vec4((float)(rand() % 255) / 255.0, (float)(rand() % 255) / 255.0, (float)(rand() % 255) / 255.0,1.0);
+	color_current = color;
 	for (int i = 0; i < 24; i++)
-		newcolours[i] = orange;
+		newcolours[i] = color;
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours);
@@ -331,7 +344,10 @@ bool checkvalid(glm::vec2 cellpos)
 void rotate()
 {
 	// 计算得到下一个旋转方向
-	int nextrotation = (rotation + 1) % 4;
+	int nextrotation = (rotation + 1);
+	if (nextrotation >= type_current + 4) {
+		nextrotation = type_current;
+	}
 
 	// 检查当前旋转之后的位置的有效性
 	if (checkvalid((allRotationsLshape[nextrotation][0]) + tilepos)
@@ -366,7 +382,7 @@ void settile()
 		// 将格子对应在棋盘格上的位置设置为填充
 		board[x][y] = true;
 		// 并将相应位置的颜色修改
-		changecellcolour(glm::vec2(x, y), orange);
+		changecellcolour(glm::vec2(x, y), color_current);
 	}
 }
 
@@ -510,10 +526,24 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
+void doTick() {
 
+			if (!movetile(glm::vec2(0, -1)))
+			{
+				settile();
+				newtile();
+				
+			}
+
+
+
+	
+
+}
 
 int main(int argc, char **argv)
 {
+	
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -539,16 +569,21 @@ int main(int argc, char **argv)
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
-    }
-	
-	
+    }	
 	init();
+
+	clock_t pretime = clock();
 	while (!glfwWindowShouldClose(window))
     { 
         display();
         glfwSwapBuffers(window);
         glfwPollEvents();	
-    }
+		if (clock() - pretime>=tickInterval) {
+			pretime = clock();
+			doTick();
+		}
+	}
     glfwTerminate();
+	
     return 0;
 }
