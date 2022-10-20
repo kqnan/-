@@ -14,8 +14,8 @@
  * - 1) 绘制‘J’、‘Z’等形状的方块  √
  * - 2) 随机生成方块并赋上不同的颜色  √
  * - 3) 方块的自动向下移动 √
- * - 4) 方块之间、方块与边界之间的碰撞检测
- * - 5) 棋盘格中每一行填充满之后自动消除
+ * - 4) 方块之间、方块与边界之间的碰撞检测 √
+ * - 5) 棋盘格中每一行填充满之后自动消除 √
  * - 6) 其他
  *
  */
@@ -32,7 +32,7 @@
 #include <mutex>
 #define v2 glm::vec2
 using namespace std;
-uint8_t tickInterval = 500;//每一tick有多少毫秒
+uint8_t tickInterval = 1000;//每一tick有多少毫秒
 int starttime;			// 控制方块向下移动时间
 int rotation = 0;		// 控制当前窗口中的方块旋转
 glm::vec2 tile[4];			// 表示当前窗口中的方块
@@ -40,10 +40,11 @@ glm::vec4 color_current;
 bool gameover = false;	// 游戏结束控制变量
 int xsize = 400;		// 窗口大小（尽量不要变动窗口大小！）
 int ysize = 720;
+bool debug = true;
 int type_current = 0;//当前选择的方块的类型
 // 单个网格大小
 int tile_width = 33;
-thread* gameThread = NULL;
+
 mutex mtx;
 // 网格布大小
 const int board_width = 10;
@@ -109,7 +110,7 @@ glm::vec2 tilepos = glm::vec2(5, 19);
 // 布尔数组表示棋盘格的某位置是否被方块填充，即board[x][y] = true表示(x,y)处格子被填充。
 // （以棋盘格的左下角为原点的坐标系）
 bool board[board_width][board_height];
-
+glm::vec4 colors_board[board_width][board_height];
 // 当棋盘格某些位置被方块填充之后，记录这些位置上被填充的颜色
 glm::vec4 board_colours[points_num];
 
@@ -177,7 +178,9 @@ void newtile()
 	tilepos = glm::vec2(5 , 19);
 	rotation = 0;
 	srand(time(0));
-	type_current = (rand() % 7) * 4;
+	if (debug==true)type_current = 0;
+	else type_current= (rand() % 7) * 4;
+	
 	rotation = type_current;
 	for (int i = 0; i < 4; i++)
 	{
@@ -254,7 +257,10 @@ void init()
 	// 将棋盘格所有位置的填充与否都设置为false（没有被填充）
 	for (int i = 0; i < board_width; i++)
 		for (int j = 0; j < board_height; j++)
+		{
 			board[i][j] = false;
+			colors_board[i][j] = glm::vec4(0.0, 0.0, 0.0, 0.0);
+		}
 
 	// 载入着色器
 	std::string vshader, fshader;
@@ -334,7 +340,7 @@ void init()
 // 检查在cellpos位置的格子是否被填充或者是否在棋盘格的边界范围内
 bool checkvalid(glm::vec2 cellpos)
 {
-	if((cellpos.x >=0) && (cellpos.x < board_width) && (cellpos.y >= 0) && (cellpos.y < board_height) )
+	if((cellpos.x >=0) && (cellpos.x < board_width) && (cellpos.y >= 0) && (cellpos.y < board_height)&&(!board[(int)cellpos.x][(int)cellpos.y]) )
 		return true;
 	else
 		return false;
@@ -381,8 +387,30 @@ void settile()
 		int y = (tile[i] + tilepos).y;
 		// 将格子对应在棋盘格上的位置设置为填充
 		board[x][y] = true;
+		colors_board[x][y] = color_current;
 		// 并将相应位置的颜色修改
 		changecellcolour(glm::vec2(x, y), color_current);
+	}
+CHECK:
+	bool flag = true;
+	for (int i = 0; i < board_width; i++) {
+		if (board[i][0] == false) {
+			flag = false;
+			break;
+		}
+	}
+	if (flag) {
+		cout << "bingo" << endl;
+		for (int i = 0; i < board_width; i++) {
+			for (int j = 0; j <board_height-1; j++) {
+				board[i][j] = board[i][j+1];
+				colors_board[i][j] = colors_board[i][j + 1];
+				changecellcolour(glm::vec2(i, j), colors_board[i][j]);
+			}
+		}
+		goto CHECK;
+		
+	
 	}
 }
 
