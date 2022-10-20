@@ -1,2 +1,13 @@
 ﻿  main.cpp
+d:\计算机图形学\俄罗斯方块\俄罗斯方块\include\angel.h(71): warning C4305: “初始化”: 从“double”到“GLfloat”截断
+d:\计算机图形学\俄罗斯方块\俄罗斯方块\main.cpp(364): warning C4244: “初始化”: 从“T”转换到“int”，可能丢失数据
+          with
+          [
+              T=float
+          ]
+d:\计算机图形学\俄罗斯方块\俄罗斯方块\main.cpp(365): warning C4244: “初始化”: 从“T”转换到“int”，可能丢失数据
+          with
+          [
+              T=float
+          ]
   俄罗斯方块.vcxproj -> D:\计算机图形学\俄罗斯方块\Debug\俄罗斯方块.exe
